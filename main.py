@@ -76,4 +76,16 @@ def test_knn():
 
 
 # Run testing if needed
-test_knn()
+# test_knn()
+
+if __name__ == "__main__":
+
+    def knn(X_train, y_train, x_input, k=3):
+        distances = []
+        for i in range(len(X_train)):
+            dist = euclidean_distance(X_train[i], x_input)
+            distances.append((dist, y_train[i]))
+        distances = sorted(distances)[:k]
+        labels = [label for _, label in distances]
+        return max(set(labels), key=labels.count)  # Majority vote
+
