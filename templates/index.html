@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNN Digit Classifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-pink-100 text-gray-800 flex flex-col items-center min-h-screen p-4">
+    <h1 class="text-4xl font-bold text-pink-500 my-6">KNN Digit Classifier</h1>
+    <p class="text-lg text-gray-700 mb-4">Draw a digit (0-9) on the canvas below and press "Predict".</p>
+    
+    <canvas id="canvas" width="280" height="280" 
+        class="border-4 border-pink-400 bg-black cursor-crosshair shadow-lg mb-6">
+    </canvas>
+    
+    <div class="space-x-4 mb-4">
+        <button onclick="clearCanvas()" 
+            class="px-6 py-2 bg-pink-400 text-white font-semibold rounded-lg shadow hover:bg-pink-500">
+            Clear
+        </button>
+        <button onclick="predictDigit()" 
+            class="px-6 py-2 bg-pink-400 text-white font-semibold rounded-lg shadow hover:bg-pink-500">
+            Predict
+        </button>
+    </div>
+    
+    <p id="result" class="text-xl font-semibold text-pink-600">Prediction: </p>
+
+    <script>
+        const canvas = document.getElementById("canvas");
+        const ctx = canvas.getContext("2d");
+        const result = document.getElementById("result");
+
+        let painting = false;
+
+        function startPosition(e) {
+            painting = true;
+            draw(e);
+        }
+
+        function endPosition() {
+            painting = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!painting) return;
+            ctx.lineWidth = 15;
+            ctx.lineCap = "round";
+            ctx.strokeStyle = "white";
+
+            ctx.lineTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop);
+        }
+
+        canvas.addEventListener("mousedown", startPosition);
+        canvas.addEventListener("mouseup", endPosition);
+        canvas.addEventListener("mousemove", draw);
+
+        function clearCanvas() {
+            ctx.fillStyle = "black";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            result.textContent = "Prediction: ";
+        }
+
+        async function predictDigit() {
+            const dataURL = canvas.toDataURL();
+            const response = await fetch("/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ imageData: dataURL })
+            });
+
+            const resultData = await response.json();
+            if (resultData.prediction !== undefined) {
+                result.textContent = `Prediction: ${resultData.prediction}`;
+            } else {
+                result.textContent = `Error: ${resultData.error}`;
+            }
+        }
+
+        // Initialize canvas with a black background
+        clearCanvas();
+    </script>
+</body>
+</html>
