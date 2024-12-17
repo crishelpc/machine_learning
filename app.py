@@ -1,91 +1,113 @@
-from tkinter import *
+import tkinter as tk
+import cv2
 import numpy as np
-from PIL import ImageGrab
-from Prediction import predict
+from PIL import Image, ImageDraw, ImageOps
+from sklearn.model_selection import train_test_split
+import os
+import pickle
 
-window = Tk()
-window.title("Handwritten digit recognition")
-l1 = Label()
+# KNN Functions
+def euclidean_distance(a, b):
+    return np.sqrt(np.sum((a - b) ** 2))
+
+def knn(X_train, y_train, x_input, k=3):
+    distances = []
+    for i in range(len(X_train)):
+        dist = euclidean_distance(X_train[i], x_input)
+        distances.append((dist, y_train[i]))
+    distances = sorted(distances)[:k]
+    labels = [label for _, label in distances]
+    return max(set(labels), key=labels.count)  # Majority vote
+
+# Function to load images
+def load_images_from_folder(folder):
+    images = []
+    labels = []
+    for label in range(10):  # Assuming folders are named 0, 1, ..., 9
+        path = os.path.join(folder, str(label))
+        for filename in os.listdir(path):
+            img = cv2.imread(os.path.join(path, filename), cv2.IMREAD_GRAYSCALE)
+            if img is not None:
+                img_resized = cv2.resize(img, (28, 28))  # Resize to 28x28
+                images.append(img_resized.flatten())    # Flatten to 1D array
+                labels.append(label)
+    return np.array(images), np.array(labels)
+
+# Load or Train Function
+def load_or_train_data():
+    # Try loading pre-trained data
+    try:
+        X_train = np.load("X_train.npy")
+        y_train = np.load("y_train.npy")
+        print("Loaded training data from file.")
+    except FileNotFoundError:
+        # If files don't exist, train from scratch
+        print("Training data not found, training now...")
+        X, y = load_images_from_folder("dataset")
+        X = X / 255.0  # Normalize
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        # Save training data to avoid retraining in future
+        np.save("X_train.npy", X_train)
+        np.save("y_train.npy", y_train)
+        print("Training data saved to file.")
+
+    return X_train, y_train
+
+# GUI with Drawing Canvas
+class KNNDrawApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("KNN Digit Classifier - Draw & Predict")
+        self.root.geometry("400x500")
+
+        self.canvas = tk.Canvas(root, bg="black", width=280, height=280)
+        self.canvas.pack(pady=10)
+
+        # Bind mouse events to the canvas
+        self.canvas.bind("<B1-Motion>", self.paint)
+
+        self.clear_button = tk.Button(root, text="Clear", command=self.clear_canvas)
+        self.clear_button.pack(pady=5)
+
+        self.predict_button = tk.Button(root, text="Predict", command=self.predict_digit)
+        self.predict_button.pack(pady=5)
+
+        self.result_label = tk.Label(root, text="Prediction: ", font=("Helvetica", 14))
+        self.result_label.pack(pady=10)
+
+        # Initialize a PIL image to store the drawing
+        self.image = Image.new("L", (280, 280), "black")
+        self.draw = ImageDraw.Draw(self.image)
+
+        # Load or train the data
+        self.X_train, self.y_train = load_or_train_data()  # Load or train the data
+
+    def paint(self, event):
+        x, y = event.x, event.y
+        r = 8  # Brush radius
+        self.canvas.create_oval(x - r, y - r, x + r, y + r, fill="white", outline="white")
+        self.draw.ellipse([x - r, y - r, x + r, y + r], fill="white", outline="white")
+
+    def clear_canvas(self):
+        self.canvas.delete("all")
+        self.image = Image.new("L", (280, 280), "black")
+        self.draw = ImageDraw.Draw(self.image)
+        self.result_label.config(text="Prediction: ")
+
+    def predict_digit(self):
+        # Resize the drawn image to 28x28 and normalize
+        img_resized = self.image.resize((28, 28))
+        img_inverted = ImageOps.invert(img_resized)  # Invert colors: white digits on black
+        img_array = np.array(img_inverted).flatten() / 255.0
+
+        # Use the KNN model to predict
+        prediction = knn(self.X_train, self.y_train, img_array)
+        self.result_label.config(text=f"Prediction: {prediction}")
 
 
-def MyProject():
-    global l1
-
-    widget = cv
-    # Setting co-ordinates of canvas
-    x = window.winfo_rootx() + widget.winfo_x()
-    y = window.winfo_rooty() + widget.winfo_y()
-    x1 = x + widget.winfo_width()
-    y1 = y + widget.winfo_height()
-
-    # Image is captured from canvas and is resized to (28 X 28) px
-    img = ImageGrab.grab().crop((x, y, x1, y1)).resize((28, 28))
-
-    # Converting rgb to grayscale image
-    img = img.convert('L')
-
-    # Extracting pixel matrix of image and converting it to a vector of (1, 784)
-    x = np.asarray(img)
-    vec = np.zeros((1, 784))
-    k = 0
-    for i in range(28):
-        for j in range(28):
-            vec[0][k] = x[i][j]
-            k += 1
-
-    # Loading Thetas
-    Theta1 = np.loadtxt('Theta1.txt')
-    Theta2 = np.loadtxt('Theta2.txt')
-
-    # Calling function for prediction
-    pred = predict(Theta1, Theta2, vec / 255)
-
-    # Displaying the result
-    l1 = Label(window, text="Digit = " + str(pred[0]), font=('Algerian', 20))
-    l1.place(x=230, y=420)
-
-
-lastx, lasty = None, None
-
-
-# Clears the canvas
-def clear_widget():
-    global cv, l1
-    cv.delete("all")
-    l1.destroy()
-
-
-# Activate canvas
-def event_activation(event):
-    global lastx, lasty
-    cv.bind('<B1-Motion>', draw_lines)
-    lastx, lasty = event.x, event.y
-
-
-# To draw on canvas
-def draw_lines(event):
-    global lastx, lasty
-    x, y = event.x, event.y
-    cv.create_line((lastx, lasty, x, y), width=30, fill='white', capstyle=ROUND, smooth=TRUE, splinesteps=12)
-    lastx, lasty = x, y
-
-
-# Label
-L1 = Label(window, text="Handwritten Digit Recoginition", font=('Algerian', 25), fg="blue")
-L1.place(x=35, y=10)
-
-# Button to clear canvas
-b1 = Button(window, text="1. Clear Canvas", font=('Algerian', 15), bg="orange", fg="black", command=clear_widget)
-b1.place(x=120, y=370)
-
-# Button to predict digit drawn on canvas
-b2 = Button(window, text="2. Prediction", font=('Algerian', 15), bg="white", fg="red", command=MyProject)
-b2.place(x=320, y=370)
-
-# Setting properties of canvas
-cv = Canvas(window, width=350, height=290, bg='black')
-cv.place(x=120, y=70)
-
-cv.bind('<Button-1>', event_activation)
-window.geometry("600x500")
-window.mainloop()
+# Run the GUI
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = KNNDrawApp(root)
+    root.mainloop()
