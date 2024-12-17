@@ -54,7 +54,7 @@
 
             // Clear previous timeout, then set a new one to trigger live prediction after a small delay
             clearTimeout(timeout);
-            timeout = setTimeout(predictDigit, 100);  // Trigger prediction after 100ms of inactivity
+            timeout = setTimeout(predictDigit, 800);  // Trigger prediction after 100ms of inactivity
         }
 
         canvas.addEventListener("mousedown", startPosition);
