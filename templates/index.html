@@ -30,12 +30,12 @@
 
         let painting = false;
         let timeout;
-        let isPredicted = false;  // Flag to track if a prediction has already been made
+        let isPredicted = false;  
 
         function startPosition(e) {
             if (isPredicted) {
-                clearCanvas();  // Clear canvas if a prediction has been made
-                isPredicted = false;  // Reset the prediction flag
+                clearCanvas();  
+                isPredicted = false;  
             }
             painting = true;
             draw(e);
@@ -70,24 +70,22 @@
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             result.textContent = "Prediction: ";
-            isPredicted = false;  // Reset the prediction flag
+            isPredicted = false;  
         }
 
         async function predictDigit() {
-            // Resize the canvas image to 28x28 pixels for prediction
             const resizedCanvas = document.createElement('canvas');
             resizedCanvas.width = 28;
             resizedCanvas.height = 28;
             const resizedCtx = resizedCanvas.getContext('2d');
-            resizedCtx.drawImage(canvas, 0, 0, 28, 28); // Resize the canvas to 28x28
+            resizedCtx.drawImage(canvas, 0, 0, 28, 28); 
 
             // Convert canvas image to Blob
             resizedCanvas.toBlob(async function (blob) {
-                // Create FormData and append the image blob
+                // Create FormData and append the blob
                 const formData = new FormData();
-                formData.append("file", blob, "image.png");
+                formData.append("file", blob);
 
-                // Send the form data to the backend
                 try {
                     const response = await fetch("/predict", {
                         method: "POST",
@@ -110,8 +108,6 @@
                 }
             });
         }
-
-        // Initialize canvas with a black background
         clearCanvas();
     </script>
 </body>
