@@ -6,11 +6,11 @@
     <title>KNN Digit Classifier</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-pink-100 text-gray-800 flex flex-col items-center justify-center min-h-screen p-4">
+<body class="bg-pink-100 text-gray-800 flex flex-col items-center min-h-screen p-4">
     <h1 class="text-4xl font-bold text-pink-500 my-6">KNN Digit Classifier</h1>
     <p class="text-lg text-gray-700 mb-4">Draw a digit (0-9) on the canvas below.</p>
     
-    <canvas id="canvas" width="400" height="400" 
+    <canvas id="canvas" width="280" height="280" 
         class="border-4 border-pink-400 bg-black cursor-crosshair shadow-lg mb-6">
     </canvas>
     
@@ -59,7 +59,7 @@
 
             // Clear previous timeout, then set a new one to trigger live prediction after a small delay
             clearTimeout(timeout);
-            timeout = setTimeout(predictDigit, 800);  // Trigger prediction after 800ms of inactivity
+            timeout = setTimeout(predictDigit, 800);  // Trigger prediction after 100ms of inactivity
         }
 
         canvas.addEventListener("mousedown", startPosition);
